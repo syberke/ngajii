@@ -1,16 +1,36 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { Award, BookOpen, LogOut, Settings, Shield, Trophy, User } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
-const { width, height } = Dimensions.get('window');
+import React, { useState, useEffect } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { supabase } from '@/lib/supabase';
 
 export default function ProfileScreen() {
   const { profile, user, signOut } = useAuth();
-  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
+  const [organizeInfo, setOrganizeInfo] = useState<any>(null);
+
+  const fetchOrganizeInfo = async () => {
+    if (!profile?.organize_id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('organizes')
+        .select('name, description, code')
+        .eq('id', profile.organize_id)
+        .single();
+
+      if (!error && data) {
+        setOrganizeInfo(data);
+      }
+    } catch (error) {
+      console.error('Error fetching organize info:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrganizeInfo();
+  }, [profile]);
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -26,16 +46,8 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
-            try {
-              await signOut();
-              router.replace('/(auth)/welcome');
-            } catch (error) {
-              console.error('Sign out error:', error);
-              // Force navigation even if signOut fails
-              router.replace('/(auth)/welcome');
-            } finally {
-              setLoading(false);
-            }
+            await signOut();
+            router.replace('/(auth)/welcome');
           },
         },
       ]
@@ -66,7 +78,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={styles.header}>
         <View style={styles.avatarContainer}>
           <User size={48} color="white" />
         </View>
@@ -95,12 +107,13 @@ export default function ProfileScreen() {
             </View>
           </View>
 
-          {profile?.organize_id && (
+          {organizeInfo && (
             <View style={styles.infoItem}>
               <BookOpen size={20} color="#3B82F6" />
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Kelas</Text>
-                <Text style={styles.infoValue}>Kelas Aktif</Text>
+                <Text style={styles.infoValue}>{organizeInfo.name}</Text>
+                <Text style={styles.infoSubValue}>Kode: {organizeInfo.code}</Text>
               </View>
             </View>
           )}
@@ -164,23 +177,19 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Tentang Aplikasi</Text>
         
-       <View style={styles.appInfoCard}>
-  <BookOpen size={44} color="#10B981" style={{ marginBottom: 12 }} />
-
-  <Text style={styles.appName}>Ngaji App</Text>
-  <Text style={styles.appVersion}>Versi 1.0.0</Text>
-
-  <View style={styles.authorContainer}>
-    <Text style={styles.madeBy}>Dirancang dan dibangun oleh:</Text>
-    <Text style={styles.authorName}>Akra Mujjaman Raton</Text>
-    <Text style={styles.authorName}>Qiageng Berke Jaisyurrohman</Text>
-  </View>
-
-  <Text style={styles.appDescription}>
-    Platform pembelajaran Quran digital untuk hafalan, murojaah, dan monitoring perkembangan siswa.
-  </Text>
-</View>
-
+        <View style={styles.appInfoCard}>
+          <BookOpen size={44} color="#10B981" style={{ marginBottom: 12 }} />
+          <Text style={styles.appName}>Ngaji App</Text>
+          <Text style={styles.appVersion}>Versi 1.0.0</Text>
+          <View style={styles.authorContainer}>
+            <Text style={styles.madeBy}>Dirancang dan dibangun oleh:</Text>
+            <Text style={styles.authorName}>Akra Mujjaman Raton</Text>
+            <Text style={styles.authorName}>Qiageng Berke Jaisyurrohman</Text>
+          </View>
+          <Text style={styles.appDescription}>
+            Platform pembelajaran Quran digital untuk hafalan, murojaah, dan monitoring perkembangan siswa.
+          </Text>
+        </View>
       </View>
     </ScrollView>
   );
@@ -193,39 +202,37 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'white',
+    paddingTop: 60,
     paddingBottom: 32,
-    paddingHorizontal: Math.max(24, width * 0.05),
+    paddingHorizontal: 24,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   avatarContainer: {
-    width: Math.min(80, width * 0.2),
-    height: Math.min(80, width * 0.2),
+    width: 80,
+    height: 80,
     backgroundColor: '#10B981',
-    borderRadius: Math.min(40, width * 0.1),
+    borderRadius: 40,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   userName: {
-    fontSize: Math.min(24, width * 0.06),
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
-    textAlign: 'center',
   },
   userEmail: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#6B7280',
-    textAlign: 'center',
   },
   section: {
-    marginHorizontal: Math.max(16, width * 0.04),
-    marginVertical: 12,
+    margin: 16,
   },
   sectionTitle: {
-    fontSize: Math.min(18, width * 0.045),
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 16,
@@ -233,7 +240,7 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(16, width * 0.04),
+    padding: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -244,7 +251,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: Math.max(10, height * 0.015),
+    paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -252,24 +259,29 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoLabel: {
-    fontSize: Math.min(12, width * 0.03),
+    fontSize: 12,
     color: '#6B7280',
     marginBottom: 2,
   },
   infoValue: {
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     color: '#1F2937',
     fontWeight: '600',
   },
+  infoSubValue: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
   achievementContainer: {
     flexDirection: 'row',
-    gap: Math.max(8, width * 0.02),
+    gap: 12,
   },
   achievementCard: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(12, width * 0.03),
+    padding: 16,
     alignItems: 'center',
     gap: 8,
     shadowColor: '#000',
@@ -279,12 +291,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   achievementNumber: {
-    fontSize: Math.min(18, width * 0.045),
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
   },
   achievementLabel: {
-    fontSize: Math.min(11, width * 0.028),
+    fontSize: 12,
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -302,13 +314,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: Math.max(14, width * 0.035),
+    padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
-    minHeight: 56,
   },
   actionText: {
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     color: '#1F2937',
   },
   logoutButton: {
@@ -320,7 +331,7 @@ const styles = StyleSheet.create({
   appInfoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(20, width * 0.05),
+    padding: 24,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -329,42 +340,36 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   appName: {
-    fontSize: Math.min(20, width * 0.05),
+    fontSize: 20,
     fontWeight: 'bold',
     color: '#1F2937',
     marginTop: 12,
   },
   appVersion: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
     marginBottom: 12,
   },
   appDescription: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: Math.min(20, width * 0.05),
+    lineHeight: 20,
   },
-
-authorContainer: {
-  alignItems: 'center',
-  marginBottom: 12,
-},
-
-madeBy: {
-  fontSize: Math.min(13, width * 0.032),
-  color: '#4B5563',
-  fontStyle: 'italic',
-  marginBottom: 2,
-},
-
-authorName: {
-  fontSize: Math.min(14, width * 0.035),
-  color: '#111827',
-  fontWeight: '600',
-},
-
-
-
+  authorContainer: {
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  madeBy: {
+    fontSize: 14,
+    color: '#4B5563',
+    fontStyle: 'italic',
+    marginBottom: 2,
+  },
+  authorName: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '600',
+  },
 });

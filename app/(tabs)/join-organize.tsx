@@ -1,16 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, Alert, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Pressable, Alert } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Users, Key, CircleCheck as CheckCircle } from 'lucide-react-native';
-
-const { width, height } = Dimensions.get('window');
 
 export default function JoinOrganizeScreen() {
   const { profile, refreshProfile } = useAuth();
-  const insets = useSafeAreaInsets();
   const [classCode, setClassCode] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -34,7 +30,7 @@ export default function JoinOrganizeScreen() {
         .select('*')
         .eq('code', classCode.toUpperCase())
         .eq('is_active', true)
-        .maybeSingle()
+        .single();
 
       if (organizeError || !organizeData) {
         Alert.alert('Error', 'Kode kelas tidak ditemukan atau tidak aktif');
@@ -116,7 +112,7 @@ export default function JoinOrganizeScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={styles.header}>
         <Users size={32} color="#3B82F6" />
         <Text style={styles.headerTitle}>Gabung Kelas</Text>
         <Text style={styles.headerSubtitle}>Masukkan kode kelas untuk bergabung</Text>
@@ -168,71 +164,66 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'white',
-    paddingHorizontal: Math.max(24, width * 0.05),
-    paddingBottom: 24,
+    padding: 24,
+    paddingTop: 60,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
-    fontSize: Math.min(24, width * 0.06),
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2937',
     marginTop: 8,
   },
   headerSubtitle: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
-    textAlign: 'center',
   },
   formContainer: {
-    paddingHorizontal: Math.max(24, width * 0.05),
-    paddingVertical: 24,
+    padding: 24,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(16, width * 0.04),
-    gap: Math.max(12, width * 0.03),
+    padding: 16,
+    gap: 12,
     marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
-    minHeight: 60,
   },
   input: {
     flex: 1,
-    fontSize: Math.min(18, width * 0.045),
+    fontSize: 18,
     color: '#1F2937',
     fontWeight: '600',
-    letterSpacing: Math.max(1, width * 0.005),
+    letterSpacing: 2,
   },
   joinButton: {
     backgroundColor: '#3B82F6',
-    padding: Math.max(16, width * 0.04),
+    padding: 16,
     borderRadius: 12,
     alignItems: 'center',
     marginBottom: 24,
-    minHeight: 56,
-    justifyContent: 'center',
   },
   joinButtonDisabled: {
     opacity: 0.6,
   },
   joinButtonText: {
     color: 'white',
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     fontWeight: 'bold',
   },
   infoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(16, width * 0.04),
+    padding: 20,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -240,48 +231,44 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   infoTitle: {
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 12,
   },
   infoText: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#6B7280',
-    lineHeight: Math.min(20, width * 0.05),
+    lineHeight: 20,
   },
   successContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: Math.max(40, width * 0.1),
-    paddingVertical: 40,
+    padding: 40,
   },
   successTitle: {
-    fontSize: Math.min(24, width * 0.06),
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2937',
     marginTop: 16,
     marginBottom: 8,
-    textAlign: 'center',
   },
   successSubtitle: {
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
     marginBottom: 32,
   },
   backButton: {
     backgroundColor: '#10B981',
-    paddingHorizontal: Math.max(24, width * 0.06),
-    paddingVertical: Math.max(12, width * 0.03),
+    paddingHorizontal: 24,
+    paddingVertical: 12,
     borderRadius: 8,
-    minHeight: 48,
-    justifyContent: 'center',
   },
   backButtonText: {
     color: 'white',
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });

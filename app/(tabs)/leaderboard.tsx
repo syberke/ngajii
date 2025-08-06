@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, TextInput } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Trophy, Medal, Award, Crown,BookOpen , Star } from 'lucide-react-native';
-
-const { width, height } = Dimensions.get('window');
+import { Trophy, Medal, Award, Crown, BookOpen, Star, Search } from 'lucide-react-native';
 
 interface LeaderboardEntry {
   id: string;
@@ -18,9 +15,10 @@ interface LeaderboardEntry {
 
 export default function LeaderboardScreen() {
   const { profile } = useAuth();
-  const insets = useSafeAreaInsets();
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>([]);
+  const [filteredLeaderboard, setFilteredLeaderboard] = useState<LeaderboardEntry[]>([]);
   const [myRank, setMyRank] = useState<LeaderboardEntry | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -28,44 +26,69 @@ export default function LeaderboardScreen() {
     if (!profile?.organize_id) return;
 
     try {
-      const { data, error } = await supabase
-        .from('siswa_poin')
-        .select(`
-          *,
-          siswa:siswa_id(name)
-        `)
-        .order('total_poin', { ascending: false });
+      // Get all students in the same organize with their points
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('users')
+        .select('id, name')
+        .eq('organize_id', profile.organize_id)
+        .eq('role', 'siswa');
 
-      if (error) {
-        console.error('Error fetching leaderboard:', error);
+      if (studentsError || !studentsData) {
+        console.error('Error fetching students:', studentsError);
         return;
       }
 
-      // Filter by organize and add rank
-      const organizeStudents = data?.filter(entry => {
-        // We need to check if the student is in the same organize
-        return true; // For now, show all students
-      }) || [];
+      // Get points for each student
+      const leaderboardData = await Promise.all(
+        studentsData.map(async (student) => {
+          const { data: pointsData } = await supabase
+            .from('siswa_poin')
+            .select('*')
+            .eq('siswa_id', student.id)
+            .single();
 
-      const rankedData = organizeStudents.map((entry, index) => ({
-        id: entry.siswa_id,
-        name: entry.siswa?.name || 'Unknown',
-        total_poin: entry.total_poin,
-        poin_hafalan: entry.poin_hafalan,
-        poin_quiz: entry.poin_quiz,
-        rank: index + 1,
-      }));
+          return {
+            id: student.id,
+            name: student.name,
+            total_poin: pointsData?.total_poin || 0,
+            poin_hafalan: pointsData?.poin_hafalan || 0,
+            poin_quiz: pointsData?.poin_quiz || 0,
+            rank: 0, // Will be set after sorting
+          };
+        })
+      );
 
-      setLeaderboard(rankedData);
+      // Sort by total points and assign ranks
+      const sortedData = leaderboardData
+        .sort((a, b) => b.total_poin - a.total_poin)
+        .map((entry, index) => ({
+          ...entry,
+          rank: index + 1,
+        }));
+
+      setLeaderboard(sortedData);
+      setFilteredLeaderboard(sortedData);
 
       // Find current user's rank
-      const userEntry = rankedData.find(entry => entry.id === profile.id);
+      const userEntry = sortedData.find(entry => entry.id === profile.id);
       setMyRank(userEntry || null);
     } catch (error) {
       console.error('Error in fetchLeaderboard:', error);
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.trim() === '') {
+      setFilteredLeaderboard(leaderboard);
+    } else {
+      const filtered = leaderboard.filter(entry =>
+        entry.name.toLowerCase().includes(query.toLowerCase())
+      );
+      setFilteredLeaderboard(filtered);
     }
   };
 
@@ -104,10 +127,22 @@ export default function LeaderboardScreen() {
       }
     >
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
+      <View style={styles.header}>
         <Trophy size={32} color="#F59E0B" />
         <Text style={styles.headerTitle}>Leaderboard</Text>
         <Text style={styles.headerSubtitle}>Peringkat berdasarkan total poin</Text>
+      </View>
+
+      {/* Search */}
+      <View style={styles.searchContainer}>
+        <Search size={20} color="#9CA3AF" />
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Cari nama siswa..."
+          value={searchQuery}
+          onChangeText={handleSearch}
+          placeholderTextColor="#9CA3AF"
+        />
       </View>
 
       {/* My Rank Card */}
@@ -127,48 +162,56 @@ export default function LeaderboardScreen() {
       )}
 
       {/* Top 3 Podium */}
-      {leaderboard.length >= 3 && (
+      {filteredLeaderboard.length >= 3 && searchQuery === '' && (
         <View style={styles.podiumContainer}>
           <Text style={styles.sectionTitle}>Top 3 Siswa Terbaik</Text>
           <View style={styles.podium}>
             {/* 2nd Place */}
-            <View style={[styles.podiumPlace, styles.secondPlace]}>
-              <View style={[styles.podiumIcon, { backgroundColor: '#C0C0C0' }]}>
-                <Trophy size={24} color="white" />
+            {filteredLeaderboard[1] && (
+              <View style={[styles.podiumPlace, styles.secondPlace]}>
+                <View style={[styles.podiumIcon, { backgroundColor: '#C0C0C0' }]}>
+                  <Trophy size={24} color="white" />
+                </View>
+                <Text style={styles.podiumName}>{filteredLeaderboard[1].name}</Text>
+                <Text style={styles.podiumPoints}>{filteredLeaderboard[1].total_poin} poin</Text>
+                <Text style={styles.podiumRank}>#2</Text>
               </View>
-              <Text style={styles.podiumName}>{leaderboard[1]?.name}</Text>
-              <Text style={styles.podiumPoints}>{leaderboard[1]?.total_poin} poin</Text>
-              <Text style={styles.podiumRank}>#2</Text>
-            </View>
+            )}
 
             {/* 1st Place */}
-            <View style={[styles.podiumPlace, styles.firstPlace]}>
-              <View style={[styles.podiumIcon, { backgroundColor: '#FFD700' }]}>
-                <Crown size={28} color="white" />
+            {filteredLeaderboard[0] && (
+              <View style={[styles.podiumPlace, styles.firstPlace]}>
+                <View style={[styles.podiumIcon, { backgroundColor: '#FFD700' }]}>
+                  <Crown size={28} color="white" />
+                </View>
+                <Text style={styles.podiumName}>{filteredLeaderboard[0].name}</Text>
+                <Text style={styles.podiumPoints}>{filteredLeaderboard[0].total_poin} poin</Text>
+                <Text style={styles.podiumRank}>#1</Text>
               </View>
-              <Text style={styles.podiumName}>{leaderboard[0]?.name}</Text>
-              <Text style={styles.podiumPoints}>{leaderboard[0]?.total_poin} poin</Text>
-              <Text style={styles.podiumRank}>#1</Text>
-            </View>
+            )}
 
             {/* 3rd Place */}
-            <View style={[styles.podiumPlace, styles.thirdPlace]}>
-              <View style={[styles.podiumIcon, { backgroundColor: '#e3811fff' }]}>
-                <Medal size={24} color="white" />
+            {filteredLeaderboard[2] && (
+              <View style={[styles.podiumPlace, styles.thirdPlace]}>
+                <View style={[styles.podiumIcon, { backgroundColor: '#CD7F32' }]}>
+                  <Medal size={24} color="white" />
+                </View>
+                <Text style={styles.podiumName}>{filteredLeaderboard[2].name}</Text>
+                <Text style={styles.podiumPoints}>{filteredLeaderboard[2].total_poin} poin</Text>
+                <Text style={styles.podiumRank}>#3</Text>
               </View>
-              <Text style={styles.podiumName}>{leaderboard[2]?.name}</Text>
-              <Text style={styles.podiumPoints}>{leaderboard[2]?.total_poin} poin</Text>
-              <Text style={styles.podiumRank}>#3</Text>
-            </View>
+            )}
           </View>
         </View>
       )}
 
       {/* Full Leaderboard */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Semua Peringkat</Text>
+        <Text style={styles.sectionTitle}>
+          {searchQuery ? `Hasil Pencarian (${filteredLeaderboard.length})` : 'Semua Peringkat'}
+        </Text>
         <View style={styles.leaderboardList}>
-          {leaderboard.map((entry) => {
+          {filteredLeaderboard.map((entry) => {
             const RankIcon = getRankIcon(entry.rank);
             const isCurrentUser = entry.id === profile?.id;
             
@@ -251,28 +294,46 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'white',
-    paddingHorizontal: Math.max(24, width * 0.05),
-    paddingBottom: 24,
+    padding: 24,
+    paddingTop: 60,
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   headerTitle: {
-    fontSize: Math.min(24, width * 0.06),
+    fontSize: 24,
     fontWeight: 'bold',
     color: '#1F2937',
     marginTop: 8,
   },
   headerSubtitle: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#6B7280',
     marginTop: 4,
   },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'white',
+    margin: 16,
+    padding: 16,
+    borderRadius: 12,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#1F2937',
+  },
   myRankCard: {
     backgroundColor: 'white',
-    marginHorizontal: Math.max(16, width * 0.04),
-    marginVertical: 12,
-    padding: Math.max(16, width * 0.04),
+    margin: 16,
+    padding: 20,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -281,7 +342,7 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   myRankTitle: {
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 12,
@@ -289,39 +350,38 @@ const styles = StyleSheet.create({
   myRankContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Math.max(12, width * 0.03),
+    gap: 16,
   },
   rankBadge: {
-    width: Math.min(48, width * 0.12),
-    height: Math.min(48, width * 0.12),
-    borderRadius: Math.min(24, width * 0.06),
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankNumber: {
     color: 'white',
-    fontSize: Math.min(16, width * 0.04),
+    fontSize: 16,
     fontWeight: 'bold',
   },
   myRankInfo: {
     flex: 1,
   },
   myRankName: {
-    fontSize: Math.min(18, width * 0.045),
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
   },
   myRankPoints: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     color: '#10B981',
     fontWeight: '600',
     marginTop: 2,
   },
   podiumContainer: {
     backgroundColor: 'white',
-    marginHorizontal: Math.max(16, width * 0.04),
-    marginVertical: 12,
-    padding: Math.max(16, width * 0.04),
+    margin: 16,
+    padding: 20,
     borderRadius: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -329,111 +389,105 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
- podium: {
-  flexDirection: 'row',
-  justifyContent: 'center',
-  alignItems: 'flex-end', // Dasar semua sejajar
-  gap: Math.max(8, width * 0.02),
-  marginTop: 24,
-},
-podiumPlace: {
-  alignItems: 'center',
-  marginHorizontal: 0,
-},
-
-firstPlace: {
-  backgroundColor: '#DAC02D', // emas
-  width: Math.min(100, width * 0.25),
-  height: Math.min(160, height * 0.2), // paling tinggi
-  borderTopLeftRadius: 12,
-  borderTopRightRadius: 12,
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  elevation: 4, // Android
-  shadowColor: '#000', // iOS
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 3.84,
-},
-
-secondPlace: {
-  backgroundColor: '#A8A8A8', // perak
-  width: Math.min(90, width * 0.22),
-  height: Math.min(140, height * 0.17),
-  borderTopLeftRadius: 12,
-  borderTopRightRadius: 12,
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  elevation: 4, // Android
-  shadowColor: '#000', // iOS
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 3.84,
-},
-
-thirdPlace: {
-  backgroundColor: '#c2762aff', // perunggu
-  width: Math.min(90, width * 0.22),
-  height: Math.min(125, height * 0.15),
-  borderTopLeftRadius: 12,
-  borderTopRightRadius: 12,
-  alignItems: 'center',
-  justifyContent: 'flex-end',
-  elevation: 4, // Android
-  shadowColor: '#000', // iOS
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.25,
-  shadowRadius: 3.84,
-},
-
+  podium: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-end',
+    gap: 12,
+    marginTop: 24,
+  },
+  podiumPlace: {
+    alignItems: 'center',
+    marginHorizontal: 0,
+  },
+  firstPlace: {
+    backgroundColor: '#FFD700',
+    width: 120,
+    height: 200,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  secondPlace: {
+    backgroundColor: '#C0C0C0',
+    width: 120,
+    height: 170,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  thirdPlace: {
+    backgroundColor: '#CD7F32',
+    width: 120,
+    height: 155,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
   podiumIcon: {
-    width: Math.min(40, width * 0.1),
-    height: Math.min(40, width * 0.1),
-    borderRadius: Math.min(20, width * 0.05),
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   podiumName: {
-    fontSize: Math.min(12, width * 0.03),
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#1F2937',
     textAlign: 'center',
     marginBottom: 4,
-    paddingHorizontal: 4,
   },
   podiumPoints: {
-    fontSize: Math.min(10, width * 0.025),
+    fontSize: 12,
     color: '#10B981',
     fontWeight: '600',
     marginBottom: 4,
   },
   podiumRank: {
-    fontSize: Math.min(10, width * 0.025),
+    fontSize: 12,
     color: '#6B7280',
     fontWeight: 'bold',
     paddingBottom: 10,
   },
   section: {
-    marginHorizontal: Math.max(16, width * 0.04),
-    marginVertical: 12,
+    margin: 16,
   },
   sectionTitle: {
-    fontSize: Math.min(18, width * 0.045),
+    fontSize: 18,
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 16,
   },
   leaderboardList: {
-    gap: Math.max(6, width * 0.015),
+    gap: 8,
   },
   leaderboardCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(12, width * 0.03),
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Math.max(12, width * 0.03),
+    gap: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -448,17 +502,16 @@ thirdPlace: {
   rankContainer: {
     alignItems: 'center',
     gap: 4,
-    minWidth: 50,
   },
   rankIconContainer: {
-    width: Math.min(32, width * 0.08),
-    height: Math.min(32, width * 0.08),
-    borderRadius: Math.min(16, width * 0.04),
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rankText: {
-    fontSize: Math.min(11, width * 0.028),
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#6B7280',
   },
@@ -466,7 +519,7 @@ thirdPlace: {
     flex: 1,
   },
   userName: {
-    fontSize: Math.min(15, width * 0.038),
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1F2937',
   },
@@ -477,12 +530,12 @@ thirdPlace: {
     marginTop: 4,
   },
   totalPoints: {
-    fontSize: Math.min(14, width * 0.035),
+    fontSize: 14,
     fontWeight: 'bold',
     color: '#10B981',
   },
   pointsDetail: {
-    fontSize: Math.min(11, width * 0.028),
+    fontSize: 12,
     color: '#6B7280',
     marginTop: 2,
   },
@@ -490,23 +543,23 @@ thirdPlace: {
     alignItems: 'flex-end',
   },
   achievementBadge: {
-    paddingHorizontal: Math.max(6, width * 0.015),
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   achievementText: {
-    fontSize: Math.min(9, width * 0.022),
+    fontSize: 10,
     fontWeight: 'bold',
   },
   categoryCards: {
     flexDirection: 'row',
-    gap: Math.max(8, width * 0.02),
+    gap: 12,
   },
   categoryCard: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: Math.max(12, width * 0.03),
+    padding: 16,
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -515,20 +568,20 @@ thirdPlace: {
     elevation: 2,
   },
   categoryTitle: {
-    fontSize: Math.min(13, width * 0.032),
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#1F2937',
+    color: '#1F2937', 
     marginTop: 8,
     marginBottom: 8,
   },
   categoryLeader: {
-    fontSize: Math.min(11, width * 0.028),
+    fontSize: 12,
     fontWeight: '600',
     color: '#6B7280',
     textAlign: 'center',
   },
   categoryPoints: {
-    fontSize: Math.min(11, width * 0.028),
+    fontSize: 12,
     color: '#10B981',
     fontWeight: 'bold',
     marginTop: 2,
