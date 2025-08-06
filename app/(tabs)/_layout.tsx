@@ -1,6 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, router } from 'expo-router';
-import { ChartBar as BarChart3, BookOpen, ClipboardCheck, CloudUpload, GraduationCap, Chrome as Home, HousePlus, ListChecks, ShieldCheck, Trophy, User } from 'lucide-react-native';
+import { ChartBar as BarChart3, BookOpen, ClipboardCheck, CloudUpload, GraduationCap, Home, HousePlus, ListChecks, ShieldCheck, Trophy, User } from 'lucide-react-native';
 import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
