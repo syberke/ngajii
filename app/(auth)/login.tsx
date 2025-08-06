@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Alert } from 'react-native';
+import { View, Text, TextInput, Pressable, StyleSheet, Alert, Dimensions, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BookOpen, Mail, Lock, ArrowLeft } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width, height } = Dimensions.get('window');
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const handleSignIn = async () => {
     if (!email || !password) {
@@ -35,7 +39,7 @@ export default function LoginScreen() {
     >
       <View style={styles.content}>
         <Pressable 
-          style={styles.backButton}
+          style={[styles.backButton, { marginTop: insets.top + 16 }]}
          onPress={() => {
   if (router.canGoBack()) {
     router.back();
@@ -104,71 +108,82 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    minHeight: height,
   },
   content: {
     flex: 1,
-    padding: 24,
+    paddingHorizontal: Math.max(24, width * 0.05),
+    paddingBottom: 24,
   },
   backButton: {
-    marginTop: 40,
     alignSelf: 'flex-start',
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
   },
   header: {
     alignItems: 'center',
-    marginTop: 40,
-    marginBottom: 40,
+    marginTop: height * 0.08,
+    marginBottom: height * 0.06,
   },
   title: {
-    fontSize: 28,
+    fontSize: Math.min(28, width * 0.07),
     fontWeight: 'bold',
     color: 'white',
     marginTop: 16,
     marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     color: 'white',
     opacity: 0.9,
+    textAlign: 'center',
+    paddingHorizontal: 20,
   },
   form: {
     backgroundColor: 'white',
     borderRadius: 16,
-    padding: 24,
+    padding: Math.max(20, width * 0.05),
     gap: 16,
+    marginHorizontal: width < 400 ? 0 : 20,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#F9FAFB',
     borderRadius: 12,
-    padding: 16,
+    padding: Math.max(12, width * 0.04),
     gap: 12,
+    minHeight: 56,
   },
   input: {
     flex: 1,
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     color: '#1F2937',
   },
   button: {
     backgroundColor: '#10B981',
-    padding: 16,
+    padding: Math.max(14, width * 0.04),
     borderRadius: 12,
     alignItems: 'center',
     marginTop: 8,
+    minHeight: 56,
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: 'white',
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     fontWeight: 'bold',
   },
   linkText: {
     textAlign: 'center',
     color: '#6B7280',
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     marginTop: 8,
+    paddingHorizontal: 20,
   },
   linkBold: {
     color: '#10B981',

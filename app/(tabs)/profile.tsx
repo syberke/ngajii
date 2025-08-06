@@ -2,10 +2,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { router } from 'expo-router';
 import { Award, BookOpen, LogOut, Settings, Shield, Trophy, User } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+const { width, height } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const { profile, user, signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
 
   const handleSignOut = async () => {
@@ -22,8 +26,16 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             setLoading(true);
-            await signOut();
-            router.replace('/(auth)/welcome');
+            try {
+              await signOut();
+              router.replace('/(auth)/welcome');
+            } catch (error) {
+              console.error('Sign out error:', error);
+              // Force navigation even if signOut fails
+              router.replace('/(auth)/welcome');
+            } finally {
+              setLoading(false);
+            }
           },
         },
       ]
@@ -54,7 +66,7 @@ export default function ProfileScreen() {
   return (
     <ScrollView style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, { paddingTop: insets.top + 20 }]}>
         <View style={styles.avatarContainer}>
           <User size={48} color="white" />
         </View>
@@ -181,37 +193,39 @@ const styles = StyleSheet.create({
   },
   header: {
     backgroundColor: 'white',
-    paddingTop: 60,
     paddingBottom: 32,
-    paddingHorizontal: 24,
+    paddingHorizontal: Math.max(24, width * 0.05),
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#E5E7EB',
   },
   avatarContainer: {
-    width: 80,
-    height: 80,
+    width: Math.min(80, width * 0.2),
+    height: Math.min(80, width * 0.2),
     backgroundColor: '#10B981',
-    borderRadius: 40,
+    borderRadius: Math.min(40, width * 0.1),
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   userName: {
-    fontSize: 24,
+    fontSize: Math.min(24, width * 0.06),
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
+    textAlign: 'center',
   },
   userEmail: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     color: '#6B7280',
+    textAlign: 'center',
   },
   section: {
-    margin: 16,
+    marginHorizontal: Math.max(16, width * 0.04),
+    marginVertical: 12,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: Math.min(18, width * 0.045),
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 16,
@@ -219,7 +233,7 @@ const styles = StyleSheet.create({
   infoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: Math.max(16, width * 0.04),
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
@@ -230,7 +244,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 12,
+    paddingVertical: Math.max(10, height * 0.015),
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
   },
@@ -238,24 +252,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoLabel: {
-    fontSize: 12,
+    fontSize: Math.min(12, width * 0.03),
     color: '#6B7280',
     marginBottom: 2,
   },
   infoValue: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     color: '#1F2937',
     fontWeight: '600',
   },
   achievementContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Math.max(8, width * 0.02),
   },
   achievementCard: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: Math.max(12, width * 0.03),
     alignItems: 'center',
     gap: 8,
     shadowColor: '#000',
@@ -265,12 +279,12 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   achievementNumber: {
-    fontSize: 20,
+    fontSize: Math.min(18, width * 0.045),
     fontWeight: 'bold',
     color: '#1F2937',
   },
   achievementLabel: {
-    fontSize: 12,
+    fontSize: Math.min(11, width * 0.028),
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -288,12 +302,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    padding: 16,
+    padding: Math.max(14, width * 0.035),
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    minHeight: 56,
   },
   actionText: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     color: '#1F2937',
   },
   logoutButton: {
@@ -305,7 +320,7 @@ const styles = StyleSheet.create({
   appInfoCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 24,
+    padding: Math.max(20, width * 0.05),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
@@ -314,28 +329,23 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   appName: {
-    fontSize: 20,
+    fontSize: Math.min(20, width * 0.05),
     fontWeight: 'bold',
     color: '#1F2937',
     marginTop: 12,
   },
   appVersion: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     color: '#6B7280',
     marginTop: 4,
     marginBottom: 12,
   },
   appDescription: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     color: '#6B7280',
     textAlign: 'center',
-    lineHeight: 20,
+    lineHeight: Math.min(20, width * 0.05),
   },
-
-
-
-
-
 
 authorContainer: {
   alignItems: 'center',
@@ -343,14 +353,14 @@ authorContainer: {
 },
 
 madeBy: {
-  fontSize: 14,
+  fontSize: Math.min(13, width * 0.032),
   color: '#4B5563',
   fontStyle: 'italic',
   marginBottom: 2,
 },
 
 authorName: {
-  fontSize: 14,
+  fontSize: Math.min(14, width * 0.035),
   color: '#111827',
   fontWeight: '600',
 },

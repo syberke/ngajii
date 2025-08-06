@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, RefreshControl, Dimensions } from 'react-native';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookOpen, Award, Users, TrendingUp, Calendar, Star, Trophy, Clock, Target, CirclePlus as PlusCircle } from 'lucide-react-native';
+
+const { width, height } = Dimensions.get('window');
 
 interface DashboardStats {
   totalSetoran?: number;
@@ -20,6 +23,7 @@ interface DashboardStats {
 
 export default function HomeScreen() {
   const { profile } = useAuth();
+  const insets = useSafeAreaInsets();
   const [stats, setStats] = useState<DashboardStats>({});
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -218,7 +222,7 @@ export default function HomeScreen() {
       {/* Header */}
       <LinearGradient
         colors={['#10B981', '#3B82F6']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 20 }]}
       >
         <View style={styles.headerContent}>
           <View>
@@ -410,53 +414,57 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    paddingTop: 60,
     paddingBottom: 32,
-    paddingHorizontal: 24,
+    paddingHorizontal: Math.max(24, width * 0.05),
   },
   headerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    flexWrap: width < 350 ? 'wrap' : 'nowrap',
   },
   greeting: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     color: 'white',
     opacity: 0.9,
   },
   userName: {
-    fontSize: 24,
+    fontSize: Math.min(24, width * 0.06),
     fontWeight: 'bold',
     color: 'white',
     marginTop: 4,
   },
   userRole: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     color: 'white',
     opacity: 0.8,
     marginTop: 2,
   },
   headerIcon: {
-    width: 64,
-    height: 64,
+    width: Math.min(64, width * 0.15),
+    height: Math.min(64, width * 0.15),
     backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 32,
+    borderRadius: Math.min(32, width * 0.075),
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: width < 350 ? 16 : 0,
   },
   content: {
-    padding: 24,
+    paddingHorizontal: Math.max(16, width * 0.04),
+    paddingVertical: 16,
   },
   statsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Math.max(8, width * 0.02),
     marginBottom: 24,
+    flexWrap: width < 400 ? 'wrap' : 'nowrap',
   },
   statsCard: {
-    flex: 1,
+    flex: width < 400 ? 0 : 1,
+    minWidth: width < 400 ? (width - 48) / 3 - 8 : 0,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: Math.max(12, width * 0.03),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -465,21 +473,21 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   statsIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: Math.min(40, width * 0.1),
+    height: Math.min(40, width * 0.1),
+    borderRadius: Math.min(20, width * 0.05),
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   statsValue: {
-    fontSize: 20,
+    fontSize: Math.min(18, width * 0.045),
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 4,
   },
   statsTitle: {
-    fontSize: 12,
+    fontSize: Math.min(11, width * 0.028),
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -488,13 +496,13 @@ const styles = StyleSheet.create({
   },
   progressCards: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Math.max(8, width * 0.02),
   },
   progressCard: {
     flex: 1,
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 16,
+    padding: Math.max(12, width * 0.03),
     alignItems: 'center',
     gap: 8,
     shadowColor: '#000',
@@ -504,17 +512,17 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   progressTitle: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     fontWeight: 'bold',
     color: '#1F2937',
   },
   progressNumber: {
-    fontSize: 24,
+    fontSize: Math.min(22, width * 0.055),
     fontWeight: 'bold',
     color: '#10B981',
   },
   progressLabel: {
-    fontSize: 12,
+    fontSize: Math.min(11, width * 0.028),
     color: '#6B7280',
     textAlign: 'center',
   },
@@ -522,25 +530,27 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   sectionTitle: {
-    fontSize: 18,
+    fontSize: Math.min(18, width * 0.045),
     fontWeight: 'bold',
     color: '#1F2937',
     marginBottom: 16,
   },
   quickActions: {
     flexDirection: 'row',
-    gap: 12,
+    gap: Math.max(8, width * 0.02),
   },
   actionCard: {
     flex: 1,
-    padding: 16,
+    padding: Math.max(12, width * 0.03),
     borderRadius: 12,
     alignItems: 'center',
     gap: 8,
+    minHeight: 80,
+    justifyContent: 'center',
   },
   actionText: {
     color: 'white',
-    fontSize: 14,
+    fontSize: Math.min(13, width * 0.032),
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -550,7 +560,7 @@ const styles = StyleSheet.create({
   activityCard: {
     backgroundColor: 'white',
     borderRadius: 8,
-    padding: 16,
+    padding: Math.max(12, width * 0.03),
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -572,39 +582,39 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   activityTitle: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     fontWeight: '600',
     color: '#1F2937',
   },
   activityDate: {
-    fontSize: 12,
+    fontSize: Math.min(12, width * 0.03),
     color: '#6B7280',
     marginTop: 2,
   },
   activityStatus: {
-    paddingHorizontal: 8,
+    paddingHorizontal: Math.max(6, width * 0.02),
     paddingVertical: 4,
     borderRadius: 6,
   },
   activityStatusText: {
-    fontSize: 12,
+    fontSize: Math.min(11, width * 0.028),
     fontWeight: '600',
   },
   emptyActivity: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 32,
+    padding: Math.max(24, width * 0.06),
     alignItems: 'center',
   },
   emptyActivityText: {
-    fontSize: 14,
+    fontSize: Math.min(14, width * 0.035),
     color: '#6B7280',
     marginTop: 12,
   },
   quoteCard: {
     backgroundColor: 'white',
     borderRadius: 12,
-    padding: 20,
+    padding: Math.max(16, width * 0.04),
     alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -613,16 +623,16 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   quoteText: {
-    fontSize: 16,
+    fontSize: Math.min(15, width * 0.038),
     color: '#1F2937',
     textAlign: 'center',
     fontStyle: 'italic',
-    lineHeight: 24,
+    lineHeight: Math.min(22, width * 0.055),
     marginTop: 12,
     marginBottom: 8,
   },
   quoteSource: {
-    fontSize: 14,
+    fontSize: Math.min(13, width * 0.032),
     color: '#6B7280',
     fontWeight: '600',
   },

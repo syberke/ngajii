@@ -1,5 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, router } from 'expo-router';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {  Home,
   BookOpen,
   Trophy,
@@ -16,6 +18,7 @@ import React, { useEffect } from 'react';
 
 export default function TabsLayout() {
   const { user, profile, loading } = useAuth();
+  const insets = useSafeAreaInsets();
   const role = profile?.role;
 
   useEffect(() => {
@@ -137,9 +140,13 @@ export default function TabsLayout() {
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#E5E7EB',
-          paddingBottom: 8,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 8,
           paddingTop: 8,
-          height: 70,
+          height: Platform.OS === 'ios' ? 70 + insets.bottom : 70,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: '600',
         },
       }}
     >
