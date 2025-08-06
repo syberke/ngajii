@@ -2,18 +2,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Tabs, router } from 'expo-router';
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {  Home,
-  BookOpen,
-  Trophy,
-  CloudUpload,
-  ListChecks,
-  HousePlus ,
-  User,
-  ClipboardCheck,
-  ShieldCheck,
-  GraduationCap,
-  BarChart3
- } from 'lucide-react-native';
+import { Chrome as Home, BookOpen, Trophy, CloudUpload, ListChecks, HousePlus, User, ClipboardCheck, ShieldCheck, GraduationCap, ChartBar as BarChart3 } from 'lucide-react-native';
 import React, { useEffect } from 'react';
 
 export default function TabsLayout() {
