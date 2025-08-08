@@ -120,30 +120,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* Quick Stats for Students */}
-      {profile?.role === 'siswa' && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Pencapaian Saya</Text>
-          
-          <View style={styles.achievementContainer}>
-            <View style={styles.achievementCard}>
-              <Trophy size={24} color="#F59E0B" />
-              <Text style={styles.achievementNumber}>0</Text>
-              <Text style={styles.achievementLabel}>Total Poin</Text>
-            </View>
-            <View style={styles.achievementCard}>
-              <Award size={24} color="#10B981" />
-              <Text style={styles.achievementNumber}>0</Text>
-              <Text style={styles.achievementLabel}>Label Juz</Text>
-            </View>
-            <View style={styles.achievementCard}>
-              <BookOpen size={24} color="#3B82F6" />
-              <Text style={styles.achievementNumber}>0</Text>
-              <Text style={styles.achievementLabel}>Setoran</Text>
-            </View>
-          </View>
-        </View>
-      )}
 
       {/* Actions */}
       <View style={styles.section}>
